@@ -3,7 +3,7 @@
 
 __copyright__ = "(c) 2024, Hidayat Trimarsanto <trimarsanto@gmail.com>"
 __license__ = "MIT"
-__version__ = "2024.05.23.02"
+__version__ = "2025.09.13.01"
 
 # this module provides subcommands, eg. PROG subcommand [options]
 
@@ -75,6 +75,8 @@ class SubCommands(object):
         greet_func: Callable | None = None,
         usage_func: Callable | None = None,
         help_func: Callable | None = None,
+        # additional copyright
+        copyright: str | None = None,
     ):
 
         L.debug("initializing SubCommands class")
@@ -84,6 +86,7 @@ class SubCommands(object):
         self.usage = usage_func or self.generic_usage
         self.help = help_func or self.generic_help
         self.prog_name = sys.argv[0].rsplit("/", 1)[-1]
+        self.copyright = copyright
 
         # set up module list
         self.modules = modules
@@ -114,10 +117,14 @@ class SubCommands(object):
         sys.exit(0)
 
     def generic_usage(self):
+        if self.copyright:
+            _cerr(self.copyright)
         _cexit(
-            f"  usage:\n"
-            f"      {self.prog_name} CMD [OPTIONS]\n"
-            f"      {self.prog_name} [-i] [-l] [-h]\n"
+            f"  usage: {self.prog_name} [-i] [-l] [-h]\n"
+            f"      {self.prog_name} CMD [ARGS]      run command or script (with ext .py)\n"
+            f"      {self.prog_name} -i              run in interactive mode\n"
+            f"      {self.prog_name} -l              list available commands\n"
+            f"      {self.prog_name} -h              show this help message\n"
             f"  try: {self.prog_name} -l"
         )
 
@@ -127,6 +134,10 @@ class SubCommands(object):
 
     def generic_help(self):
         self.generic_usage()
+
+    def version(self):
+        _cerr(f"subcommand version: {__version__}")
+        _cerr(f"try version command: {self.prog_name} version")
 
     def get_command_list(self) -> list[str]:
         # read sqpy.cmds directory
@@ -236,6 +247,9 @@ class SubCommands(object):
         if path.startswith("~"):
             path = pathlib.Path(path).expanduser()
 
+        if not path.exists():
+            _cexit(f"Script: {path} does not exist!")
+
         with open(path) as fh:
             code = compile(fh.read(), path, "exec")
             exec(code, globals())
@@ -275,6 +289,10 @@ class SubCommands(object):
         elif cmd == "-h":
             # show some help
             self.help()
+
+        elif cmd == "-v":
+            # show version
+            self.version()
 
         elif cmd.endswith(".py") and self.allow_any_script:
 
